@@ -25,6 +25,17 @@ class ProcessDateset:
         return data
 
     @staticmethod
+    def process_week_column(data: DataFrame) -> DataFrame:
+        """
+        Get days of the week from the date column in order to be sure
+         that the days of the week given corresponds to the date
+        :param data: input dataset
+        :return: output dataset
+        """
+        data['week'] = data['Date'].dt.strftime('%Y-%U')
+        return data
+
+    @staticmethod
     def fill_missing_values(data: DataFrame) -> DataFrame:
         """
         As there are few missing values compared to the number of values,
@@ -75,8 +86,9 @@ class ProcessDateset:
         # todo: rename step attributes, not sure if its a good practice or not
         step_1 = ProcessDateset.drop_sleep_time_column(data)
         step_2 = ProcessDateset.process_day_column(step_1)
-        step_3 = ProcessDateset.fill_missing_values(step_2)
-        step_4 = ProcessDateset.round_columns(step_3)
-        step_5 = ProcessDateset.rename_columns(step_4)
-        return step_5
+        step_3 = ProcessDateset.process_week_column(step_2)
+        step_4 = ProcessDateset.fill_missing_values(step_3)
+        step_5 = ProcessDateset.round_columns(step_4)
+        step_6 = ProcessDateset.rename_columns(step_5)
+        return step_6
 

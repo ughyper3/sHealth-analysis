@@ -1,7 +1,7 @@
 from math import sqrt, log, exp
-from pandas import read_csv, DataFrame
+from pandas import read_csv, DataFrame, Grouper
 from process import ProcessDateset
-from matplotlib.pyplot import plot, show
+from seaborn import displot, pairplot, lineplot
 
 
 class Shealth:
@@ -21,6 +21,9 @@ class Shealth:
     spent_energy = data_set.spent_energy
     country_number = data_set.country_number
 
+    month_aggregation = data_set.groupby(data_set['date'].dt.to_period('M')).agg('mean')
+    week_aggregation = data_set.groupby(data_set['date'].dt.to_period('w')).agg('mean')
+    weekday_aggregation = data_set.groupby(day).agg('mean')
 
     date_min = date.min()
     date_max = date.max()
@@ -57,12 +60,32 @@ class Shealth:
                     interval = f'{i} : {j} : {self.get_confidence_interval(self.data_set, self.correlation[i][j])}'
                     print(interval)
 
-    def show_graph_time_steps(self):
+    def display_pair_plot(self):
         """
-        Graph of the number of steps by time
-        :return: void
+        :return: Correlation pair plot of the dataset
         """
-        plot(self.date, self.steps, 'ro')
-        show()
+        return pairplot(self.data_set)
 
+    def display_graph_date_steps(self):
+        """
+        :return: Graph of the number of steps by date
+        """
+        return lineplot(x=self.date, y=self.steps)
 
+    def display_graph_month_steps(self):
+        """
+        :return: Graph of the number of avg steps by month
+        """
+        return self.month_aggregation['steps'].plot()
+
+    def display_graph_week_steps(self):
+        """
+        :return: Graph of the number of avg steps by week
+        """
+        return self.week_aggregation['steps'].plot()
+
+    def display_graph_weekday_steps(self):
+        """
+        :return: Graph of the number of avg steps by week day
+        """
+        return self.weekday_aggregation['steps'].plot()
