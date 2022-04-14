@@ -1,7 +1,7 @@
 from pandas import DataFrame
 
 
-class ProcessDateset:
+class ProcessDataset:
 
     @staticmethod
     def drop_sleep_time_column(raw_data: DataFrame) -> DataFrame:
@@ -84,11 +84,11 @@ class ProcessDateset:
         :return: output processed dataset
         """
         # todo: rename step attributes, not sure if its a good practice or not
-        step_1 = ProcessDateset.drop_sleep_time_column(data)
-        step_2 = ProcessDateset.process_day_column(step_1)
-        step_3 = ProcessDateset.process_week_column(step_2)
-        step_4 = ProcessDateset.fill_missing_values(step_3)
-        step_5 = ProcessDateset.round_columns(step_4)
-        step_6 = ProcessDateset.rename_columns(step_5)
+        step_1 = ProcessDataset.drop_sleep_time_column(data)
+        step_2 = ProcessDataset.process_day_column(step_1)
+        step_3 = ProcessDataset.process_week_column(step_2)
+        step_4 = ProcessDataset.fill_missing_values(step_3)
+        step_5 = ProcessDataset.round_columns(step_4)
+        step_6 = ProcessDataset.rename_columns(step_5)
         return step_6
 

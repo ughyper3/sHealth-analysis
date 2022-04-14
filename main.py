@@ -1,12 +1,12 @@
 from math import sqrt, log, exp
-from pandas import read_csv, DataFrame, Grouper
-from process import ProcessDateset
-from seaborn import displot, pairplot, lineplot
+from pandas import read_csv, DataFrame
+from process import ProcessDataset
+from seaborn import pairplot, lineplot
 
 
 class Shealth:
 
-    process = ProcessDateset()
+    process = ProcessDataset()
 
     raw_data = read_csv('shealth.csv',  sep=";", decimal=',', parse_dates=['Date'])
     data_set = process.process_data(raw_data)
