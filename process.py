@@ -1,7 +1,18 @@
-from pandas import DataFrame
+from pandas import DataFrame, date_range, to_datetime
 
 
 class ProcessDataset:
+
+    @staticmethod
+    def set_datetime_column(raw_data: DataFrame) -> DataFrame:
+        """
+        Convert the date column into a datetime object column, be careful of the format of the datetime object
+        as the pandas parser was confused by the dd/mm/yyyy format, precise dayfirst attribute is True
+        :param raw_data:
+        :return: raw data
+        """
+        raw_data["Date"] = to_datetime(raw_data["Date"], dayfirst=True)
+        return raw_data
 
     @staticmethod
     def drop_sleep_time_column(raw_data: DataFrame) -> DataFrame:
@@ -43,7 +54,7 @@ class ProcessDataset:
         :param data: input dataset
         :return: output dataset
         """
-        filled_data_set = data.fillna(data.mean())
+        filled_data_set = data.fillna(data.mean(numeric_only=True))
         return filled_data_set
 
     @staticmethod
@@ -77,6 +88,32 @@ class ProcessDataset:
         return data_set
 
     @staticmethod
+    def sanity_check_duplicate_date(raw_data: DataFrame) -> bool:
+        """
+        This method checks if there is no duplication and no missing values in the date column
+        by comparing the list of date with a list of date range between the min and the max date of our dataset
+        and return a boolean in response
+        :param raw_data:
+        :return: boolean
+        """
+        date = date_range(raw_data['date'].min(), raw_data['date'].max()).to_series()
+        raw_data = list(raw_data['date'])
+        date_list = []
+        raw_data_list = []
+        for i in date:
+            date_list.append(i.strftime('%Y-%m-%d'))
+        for i in raw_data:
+            raw_data_list.append(i.strftime('%Y-%m-%d'))
+        if date_list == raw_data_list:
+            response = f'Dates columns are ready to be used'
+            print(response)
+            return True
+        else:
+            response = f'Dates columns are not ready to be used'
+            print(response)
+            return False
+
+    @staticmethod
     def process_data(data: DataFrame) -> DataFrame:
         """
         process the data by applying the methods created above.
@@ -84,11 +121,20 @@ class ProcessDataset:
         :return: output processed dataset
         """
         # todo: rename step attributes, not sure if its a good practice or not
-        step_1 = ProcessDataset.drop_sleep_time_column(data)
-        step_2 = ProcessDataset.process_day_column(step_1)
-        step_3 = ProcessDataset.process_week_column(step_2)
-        step_4 = ProcessDataset.fill_missing_values(step_3)
-        step_5 = ProcessDataset.round_columns(step_4)
-        step_6 = ProcessDataset.rename_columns(step_5)
-        return step_6
+        try:
+            step_0 = ProcessDataset.set_datetime_column(data)
+            step_1 = ProcessDataset.drop_sleep_time_column(step_0)
+            step_2 = ProcessDataset.process_day_column(step_1)
+            step_3 = ProcessDataset.process_week_column(step_2)
+            step_4 = ProcessDataset.fill_missing_values(step_3)
+            step_5 = ProcessDataset.round_columns(step_4)
+            step_6 = ProcessDataset.rename_columns(step_5)
+            ProcessDataset.sanity_check_duplicate_date(step_6)
+        except Exception as e:
+            print(f'exception {e} during the data preprocessing')
+            return data
+        else:
+            print(f'Successful data preprocessing')
+            return step_6
+
 

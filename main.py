@@ -7,12 +7,10 @@ from seaborn import pairplot, lineplot
 class Shealth:
 
     process = ProcessDataset()
-
-    raw_data = read_csv('shealth.csv',  sep=";", decimal=',', parse_dates=['Date'])
+    raw_data = read_csv('shealth.csv',  sep=";", decimal=',')
     data_set = process.process_data(raw_data)
-
     data_set_description = data_set.describe()
-    day = data_set.day
+    day = data_set['day']
     date = data_set.date
     weight = data_set.weight
     steps = data_set.steps
@@ -21,6 +19,7 @@ class Shealth:
     spent_energy = data_set.spent_energy
     country_number = data_set.country_number
 
+    year_aggregation = data_set.groupby(data_set['date'].dt.to_period('Y')).agg('mean')
     month_aggregation = data_set.groupby(data_set['date'].dt.to_period('M')).agg('mean')
     week_aggregation = data_set.groupby(data_set['date'].dt.to_period('w')).agg('mean')
     weekday_aggregation = data_set.groupby(day).agg('mean')
@@ -71,6 +70,12 @@ class Shealth:
         :return: Graph of the number of steps by date
         """
         return lineplot(x=self.date, y=self.steps)
+
+    def display_graph_year_steps(self):
+        """
+        :return: Graph of the number of avg steps by year
+        """
+        return self.year_aggregation['steps'].plot()
 
     def display_graph_month_steps(self):
         """
