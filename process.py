@@ -54,7 +54,7 @@ class ProcessDataset:
         :param data: input dataset
         :return: output dataset
         """
-        filled_data_set = data.fillna(data.mean(numeric_only=True))
+        filled_data_set = data.dropna()
         return filled_data_set
 
     @staticmethod
@@ -114,6 +114,21 @@ class ProcessDataset:
             return False
 
     @staticmethod
+    def create_average_speed_column(raw_data: DataFrame) -> DataFrame:
+        """
+        calculation on the average walk speed based on the steps, the sport and the daily walk duration
+        we supposed that the average foot walk length is 0.64m for a human
+        :param raw_data:
+        :return: data set with average speed column
+        """
+        steps_by_minute = raw_data['steps'] / (raw_data['sport_duration'] + raw_data['walk_duration'])
+        steps_by_hour = steps_by_minute * 60
+        meter_by_hour = steps_by_hour * 0.64
+        kilometer_by_hour = meter_by_hour / 1000
+        raw_data['average_speed'] = kilometer_by_hour
+        return raw_data
+
+    @staticmethod
     def process_data(data: DataFrame) -> DataFrame:
         """
         process the data by applying the methods created above.
@@ -129,12 +144,13 @@ class ProcessDataset:
             step_4 = ProcessDataset.fill_missing_values(step_3)
             step_5 = ProcessDataset.round_columns(step_4)
             step_6 = ProcessDataset.rename_columns(step_5)
-            ProcessDataset.sanity_check_duplicate_date(step_6)
+            step_7 = ProcessDataset.create_average_speed_column(step_6)
+            #ProcessDataset.sanity_check_duplicate_date(step_7)
         except Exception as e:
             print(f'exception {e} during the data preprocessing')
             return data
         else:
             print(f'Successful data preprocessing')
-            return step_6
+            return step_7
 
 

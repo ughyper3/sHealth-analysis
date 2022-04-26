@@ -9,19 +9,21 @@ class Shealth:
     process = ProcessDataset()
     raw_data = read_csv('shealth.csv',  sep=";", decimal=',')
     data_set = process.process_data(raw_data)
+
     data_set_description = data_set.describe()
     day = data_set['day']
-    date = data_set.date
-    weight = data_set.weight
-    steps = data_set.steps
-    walk_duration = data_set.walk_duration
-    sport_duration = data_set.sport_duration
-    spent_energy = data_set.spent_energy
-    country_number = data_set.country_number
+    date = data_set['date']
+    weight = data_set['weight']
+    steps = data_set['steps']
+    walk_duration = data_set['walk_duration']
+    sport_duration = data_set['sport_duration']
+    spent_energy = data_set['spent_energy']
+    country_number = data_set['country_number']
+    speed = data_set['average_speed']
 
-    year_aggregation = data_set.groupby(data_set['date'].dt.to_period('Y')).agg('mean')
-    month_aggregation = data_set.groupby(data_set['date'].dt.to_period('M')).agg('mean')
-    week_aggregation = data_set.groupby(data_set['date'].dt.to_period('w')).agg('mean')
+    year_aggregation = data_set.groupby(date.dt.to_period('Y')).agg('mean')
+    month_aggregation = data_set.groupby(date.dt.to_period('M')).agg('mean')
+    week_aggregation = data_set.groupby(date.dt.to_period('w')).agg('mean')
     weekday_aggregation = data_set.groupby(day).agg('mean')
 
     date_min = date.min()
@@ -94,3 +96,33 @@ class Shealth:
         :return: Graph of the number of avg steps by week day
         """
         return self.weekday_aggregation['steps'].plot()
+
+    def display_graph_date_speed(self):
+        """
+        :return: Graph of the number of steps by date
+        """
+        return lineplot(x=self.date, y=self.speed)
+
+    def display_graph_year_speed(self):
+        """
+        :return: Graph of the number of avg steps by year
+        """
+        return self.year_aggregation['average_speed'].plot()
+
+    def display_graph_month_speed(self):
+        """
+        :return: Graph of the number of avg steps by month
+        """
+        return self.month_aggregation['average_speed'].plot()
+
+    def display_graph_week_speed(self):
+        """
+        :return: Graph of the number of avg steps by week
+        """
+        return self.week_aggregation['average_speed'].plot()
+
+    def display_graph_weekday_speed(self):
+        """
+        :return: Graph of the number of avg steps by week day
+        """
+        return self.weekday_aggregation['average_speed'].plot()
