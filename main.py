@@ -1,7 +1,7 @@
 from math import sqrt, log, exp
 from pandas import read_csv, DataFrame
 from process import ProcessDataset
-from seaborn import pairplot, lineplot
+from seaborn import pairplot, lineplot, heatmap
 
 
 class Shealth:
@@ -126,3 +126,16 @@ class Shealth:
         :return: Graph of the number of avg steps by week day
         """
         return self.weekday_aggregation['average_speed'].plot()
+    
+    import pandas as pd
+    import matplotlib.pyplot as plt
+    import numpy as np
+    import seaborn as sns; sns.set()
+    from scipy.stats import chi2_contingency
+
+
+    def display_heat_map(self):
+        """
+        :return: Graph of correlation
+        """      
+        return heatmap(self.correlation, annot=True).plot()
