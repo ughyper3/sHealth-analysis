@@ -1,7 +1,11 @@
 from math import sqrt, log, exp
+
+from matplotlib.pyplot import subplots
 from pandas import read_csv, DataFrame
 from process import ProcessDataset
-from seaborn import pairplot, lineplot
+from seaborn import pairplot, lineplot, pointplot
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
 
 
 class Shealth:
@@ -9,6 +13,15 @@ class Shealth:
     process = ProcessDataset()
     raw_data = read_csv('shealth.csv',  sep=";", decimal=',')
     data_set = process.process_data(raw_data)
+
+    data_set_without_categorical_variables = data_set.drop(['day', 'date', 'country_number', 'week'], axis=1)
+    scaler = StandardScaler()
+    data_set_scale = scaler.fit_transform(data_set_without_categorical_variables)
+    n_components = 4
+    pca = PCA(n_components=n_components)
+    data_set_without_categorical_variables_proj = pca.fit_transform(data_set_scale)
+    variance_of_first_components = pca.explained_variance_ratio_
+
 
     data_set_description = data_set.describe()
     day = data_set['day']
@@ -126,3 +139,11 @@ class Shealth:
         :return: Graph of the number of avg steps by week day
         """
         return self.weekday_aggregation['average_speed'].plot()
+
+    def display_variance_explained_by_first_components(self):
+        (fig, ax) = subplots(figsize=(8, 6))
+        pointplot(x=[i for i in range(1, self.n_components + 1)],
+                  y=self.variance_of_first_components)
+        ax.set_title('Variance explained by components')
+        ax.set_xlabel('Component Number')
+        ax.set_ylabel('Explained Variance')
