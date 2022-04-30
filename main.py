@@ -141,9 +141,11 @@ class Shealth:
         return self.weekday_aggregation['average_speed'].plot()
 
     def display_variance_explained_by_first_components(self):
+        """
+        :return: Graph of the explained variance by first pca components
+        """
         (fig, ax) = subplots(figsize=(8, 6))
-        pointplot(x=[i for i in range(1, self.n_components + 1)],
-                  y=self.variance_of_first_components)
+        pointplot(x=[i for i in range(1, self.n_components + 1)], y=self.variance_of_first_components)
         ax.set_title('Variance explained by components')
         ax.set_xlabel('Component Number')
         ax.set_ylabel('Explained Variance')
