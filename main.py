@@ -5,6 +5,7 @@ from seaborn import pairplot, lineplot
 
 
 
+
 class Shealth:
 
     process = ProcessDataset()
