@@ -3,13 +3,16 @@ from math import sqrt, log, exp
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import scipy.stats as ss
+
 from matplotlib.pyplot import subplots
-from pandas import read_csv, DataFrame
+from pandas import read_csv, DataFrame, crosstab
 from process import ProcessDataset
-from seaborn import pairplot, lineplot, pointplot
+from seaborn import pairplot, lineplot, pointplot, histplot
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from matplotlib.collections import LineCollection
+from scipy.stats import chi2_contingency
 
 
 
@@ -32,7 +35,7 @@ class Shealth:
                                                                 columns=['PC1', 'PC2'])
     concat_data_for_PCA = pd.concat([data_set_without_categorical_variables_proj2, B], axis=1)
     pcs = pca.components_
-    print(data_set_without_categorical_variables.columns.tolist())
+
 
 
 
@@ -218,3 +221,41 @@ class Shealth:
         ax.set_title('Variance explained by components')
         ax.set_xlabel('Component Number')
         ax.set_ylabel('Explained Variance')
+
+    def display_hist_weight_and_day(self):
+        """
+        :return: Graph of the histograms about weight and days
+        """
+        plt_1 = plt.figure(figsize=(10, 5))
+        histplot(self.data_set, x="weight", multiple="dodge", hue="day")
+        plt_1.show()
+        plt_2 = plt.figure(figsize=(10, 5))
+        histplot(self.data_set, x="day", multiple="dodge", hue="weight")
+        plt_2.show()
+
+    def display_crosstab_weight_and_day(self):
+        """
+        :return: cross tab about weight and days
+        """
+        crosstab_weight_day = crosstab(self.data_set['weight'], self.data_set['day'])
+        return crosstab_weight_day
+
+    def display_chi2_cramer_crosstab_cramer_weight_and_day_and_deglib(self):
+        """
+        :return: cross tab about weight and days and his "degré de liberté" and CRAMER
+        """
+        crosstab_weight_day = crosstab(self.data_set['weight'], self.data_set['day'])
+        deg_lib_crosstab_weight_and_day = ((crosstab_weight_day.shape[0] - 1) * (crosstab_weight_day.shape[1] - 1))
+        print(deg_lib_crosstab_weight_and_day)
+        chi2_weight_and_day = chi2_contingency(crosstab_weight_day)[0]
+        sample_size = crosstab_weight_day.sum()
+        phi2 = chi2_weight_and_day/sample_size
+        r, k = crosstab_weight_day.shape
+        phi2corr = max(0, phi2 - ((k - 1) * (r - 1)) / (sample_size - 1))
+        rcorr = r - ((r - 1) ** 2) / (sample_size - 1)
+        kcorr = k - ((k - 1) ** 2) / (sample_size - 1)
+
+
+        cramer_day_and_weight = sqrt(phi2corr / min((kcorr-1), (rcorr-1)))
+        return cramer_day_and_weight
+
