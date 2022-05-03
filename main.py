@@ -1,12 +1,15 @@
 from math import sqrt, log, exp
 
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
 from matplotlib.pyplot import subplots
 from pandas import read_csv, DataFrame
 from process import ProcessDataset
 from seaborn import pairplot, lineplot, pointplot
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
-
+from matplotlib.collections import LineCollection
 
 
 
@@ -16,14 +19,78 @@ class Shealth:
     raw_data = read_csv('shealth.csv',  sep=";", decimal=',')
     data_set = process.process_data(raw_data)
 
+    B = data_set["day"]
     data_set_without_categorical_variables = data_set.drop(['day', 'date', 'country_number', 'week'], axis=1)
+
     scaler = StandardScaler()
     data_set_scale = scaler.fit_transform(data_set_without_categorical_variables)
-    n_components = 4
+    n_components = 2
     pca = PCA(n_components=n_components)
     data_set_without_categorical_variables_proj = pca.fit_transform(data_set_scale)
     variance_of_first_components = pca.explained_variance_ratio_
+    data_set_without_categorical_variables_proj2 = pd.DataFrame(data=data_set_without_categorical_variables_proj,
+                                                                columns=['PC1', 'PC2'])
+    concat_data_for_PCA = pd.concat([data_set_without_categorical_variables_proj2, B], axis=1)
+    pcs = pca.components_
+    print(data_set_without_categorical_variables.columns.tolist())
 
+
+
+    def display_circles(pcs, n_components, pca, axis_ranks, labels=None, label_rotation=0, lims=None):
+        for d1, d2 in axis_ranks:  # On affiche les 3 premiers plans factoriels, donc les 6 premières composantes
+            if d2 < n_components:
+
+                # initialisation de la figure
+                fig, ax = plt.subplots(figsize=(7, 6))
+
+                # détermination des limites du graphique
+                if lims is not None:
+                    xmin, xmax, ymin, ymax = lims
+                elif pcs.shape[1] < 30:
+                    xmin, xmax, ymin, ymax = -1, 1, -1, 1
+                else:
+                    xmin, xmax, ymin, ymax = min(pcs[d1, :]), max(pcs[d1, :]), min(pcs[d2, :]), max(pcs[d2, :])
+
+                # affichage des flèches
+                # s'il y a plus de 30 flèches, on n'affiche pas le triangle à leur extrémité
+                if pcs.shape[1] < 30:
+                    plt.quiver(np.zeros(pcs.shape[1]), np.zeros(pcs.shape[1]),
+                               pcs[d1, :], pcs[d2, :],
+                               angles='xy', scale_units='xy', scale=1, color="grey")
+                    # (voir la doc : https://matplotlib.org/api/_as_gen/matplotlib.pyplot.quiver.html)
+                else:
+                    lines = [[[0, 0], [x, y]] for x, y in pcs[[d1, d2]].T]
+                    ax.add_collection(LineCollection(lines, axes=ax, alpha=.1, color='black'))
+
+                # affichage des noms des variables
+                if labels is not None:
+                    for i, (x, y) in enumerate(pcs[[d1, d2]].T):
+                        if x >= xmin and x <= xmax and y >= ymin and y <= ymax:
+                            plt.text(x, y, labels[i], fontsize='14', ha='center', va='center', rotation=label_rotation,
+                                     color="blue", alpha=0.5)
+
+                # affichage du cercle
+                circle = plt.Circle((0, 0), 1, facecolor='none', edgecolor='b')
+                plt.gca().add_artist(circle)
+
+                # définition des limites du graphique
+                plt.xlim(xmin, xmax)
+                plt.ylim(ymin, ymax)
+
+                # affichage des lignes horizontales et verticales
+                plt.plot([-1, 1], [0, 0], color='grey', ls='--')
+                plt.plot([0, 0], [-1, 1], color='grey', ls='--')
+
+                # nom des axes, avec le pourcentage d'inertie expliqué
+                plt.xlabel(
+                    'Composant Principal{} ({}%)'.format(d1 + 1, round(100 * pca.explained_variance_ratio_[d1], 1)))
+                plt.ylabel(
+                    'Composant Principal{} ({}%)'.format(d2 + 1, round(100 * pca.explained_variance_ratio_[d2], 1)))
+
+                plt.title("Cercle des corrélations des (Composants Principaux{} et {})".format(d1 + 1, d2 + 1))
+                plt.show(block=False)
+
+    display_circles(pcs, n_components, pca, [(0, 1)], labels=np.array(data_set_without_categorical_variables.columns.tolist()))
 
     data_set_description = data_set.describe()
     day = data_set['day']
