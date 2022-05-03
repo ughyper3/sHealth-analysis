@@ -1,4 +1,4 @@
-from pandas import DataFrame, date_range, to_datetime
+from pandas import DataFrame, date_range, to_datetime, DatetimeIndex
 
 
 class ProcessDataset:
@@ -49,8 +49,7 @@ class ProcessDataset:
     @staticmethod
     def fill_missing_values(data: DataFrame) -> DataFrame:
         """
-        As there are few missing values compared to the number of values,
-        we can fill the missing values with the mean of the column.
+        instead of fill the dataset with mean, we choose to delete the missing rows
         :param data: input dataset
         :return: output dataset
         """
@@ -96,20 +95,23 @@ class ProcessDataset:
         :param raw_data:
         :return: boolean
         """
+        list_of_removed_dates = ['2015-07-27', '2017-01-16', '2017-01-05', '2016-11-13', '2015-10-10', '2015-07-04', '2017-01-13', '2017-01-17', '2017-01-06', '2017-01-07', '2017-01-08', '2017-01-11', '2015-09-12', '2017-01-09', '2017-01-14', '2015-10-25', '2017-01-03', '2017-01-04', '2017-01-15', '2017-01-01', '2017-01-12'].sort()
         date = date_range(raw_data['date'].min(), raw_data['date'].max()).to_series()
         raw_data = list(raw_data['date'])
         date_list = []
         raw_data_list = []
-        for i in date:
-            date_list.append(i.strftime('%Y-%m-%d'))
-        for i in raw_data:
-            raw_data_list.append(i.strftime('%Y-%m-%d'))
-        if date_list == raw_data_list:
+        for date in date:
+            date_list.append(date.strftime('%Y-%m-%d'))
+        for date in raw_data:
+            raw_data_list.append(date.strftime('%Y-%m-%d'))
+        difference = list(set(date_list) - set(raw_data_list)).sort()
+
+        if difference == list_of_removed_dates:
             response = f'Dates columns are ready to be used'
             print(response)
             return True
         else:
-            response = f'Dates columns are not ready to be used'
+            response = f'Dates columns are not ready to be used, difference : {difference}'
             print(response)
             return False
 
@@ -129,13 +131,23 @@ class ProcessDataset:
         return raw_data
 
     @staticmethod
+    def set_date_as_dataset_index(raw_data: DataFrame) -> DataFrame:
+        """
+        As we have to work with a time series analysis, we should set the date as the dataset index
+        :param raw_data: input dataset
+        :return:
+        """
+        raw_data.index = raw_data.date
+        raw_data.index = DatetimeIndex(raw_data.index).to_period('D')
+        return raw_data
+
+    @staticmethod
     def process_data(data: DataFrame) -> DataFrame:
         """
         process the data by applying the methods created above.
         :param data: input dataset
         :return: output processed dataset
         """
-        # todo: rename step attributes, not sure if its a good practice or not
         try:
             step_0 = ProcessDataset.set_datetime_column(data)
             step_1 = ProcessDataset.drop_sleep_time_column(step_0)
@@ -145,12 +157,14 @@ class ProcessDataset:
             step_5 = ProcessDataset.round_columns(step_4)
             step_6 = ProcessDataset.rename_columns(step_5)
             step_7 = ProcessDataset.create_average_speed_column(step_6)
-            #ProcessDataset.sanity_check_duplicate_date(step_7)
+            step_8 = ProcessDataset.set_date_as_dataset_index(step_7)
+            ProcessDataset.sanity_check_duplicate_date(step_8)
+
         except Exception as e:
             print(f'exception {e} during the data preprocessing')
             return data
         else:
             print(f'Successful data preprocessing')
-            return step_7
+            return step_8
 
 
