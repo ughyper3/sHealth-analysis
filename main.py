@@ -1,24 +1,22 @@
 from math import sqrt, log, exp
 
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-
-from sklearn.cluster import KMeans
-from sklearn.manifold import MDS
-
+from matplotlib.patches import Circle
 from statsmodels.tsa.stattools import adfuller
 
 from models import ArmaModels, ArimaModels, SarimaModels
-from matplotlib.pyplot import subplots, plot, legend, ylabel, xlabel, title
-from pandas import read_csv, DataFrame, to_datetime, crosstab
+from matplotlib.pyplot import subplots, plot, legend, ylabel, xlabel, title, quiver, text, gca, xlim, ylim, show, \
+    figure, scatter
+from pandas import read_csv, DataFrame, to_datetime, crosstab, concat
 from process import ProcessDataset
 from seaborn import pairplot, lineplot, pointplot, histplot, heatmap, set
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
+from sklearn.cluster import KMeans
+from sklearn.manifold import MDS
+from sklearn.metrics import confusion_matrix, silhouette_score
 from matplotlib.collections import LineCollection
 from scipy.stats import chi2_contingency
-from sklearn.metrics import confusion_matrix, silhouette_score
+from numpy import zeros
 
 
 class Shealth:
@@ -27,80 +25,12 @@ class Shealth:
     raw_data = read_csv('shealth.csv',  sep=";", decimal=',')
     data_set = process.process_data(raw_data)
 
-    B = data_set["day"]
     data_set_without_categorical_variables = data_set.drop(['day', 'date', 'country_number', 'week'], axis=1)
 
     scaler = StandardScaler()
     data_set_scale = scaler.fit_transform(data_set_without_categorical_variables)
-    n_components = 2
-    pca = PCA(n_components=n_components)
-    data_set_without_categorical_variables_proj = pca.fit_transform(data_set_scale)
-    variance_of_first_components = pca.explained_variance_ratio_
-    data_set_without_categorical_variables_proj2 = pd.DataFrame(data=data_set_without_categorical_variables_proj,
-                                                                columns=['PC1', 'PC2'])
-    concat_data_for_PCA = pd.concat([data_set_without_categorical_variables_proj2, B], axis=1)
-    pcs = pca.components_
-
-
-
-
-    def display_circles(pcs, n_components, pca, axis_ranks, labels=None, label_rotation=0, lims=None):
-        for d1, d2 in axis_ranks:  # On affiche les 3 premiers plans factoriels, donc les 6 premières composantes
-            if d2 < n_components:
-
-                # initialisation de la figure
-                fig, ax = plt.subplots(figsize=(7, 6))
-
-                # détermination des limites du graphique
-                if lims is not None:
-                    xmin, xmax, ymin, ymax = lims
-                elif pcs.shape[1] < 30:
-                    xmin, xmax, ymin, ymax = -1, 1, -1, 1
-                else:
-                    xmin, xmax, ymin, ymax = min(pcs[d1, :]), max(pcs[d1, :]), min(pcs[d2, :]), max(pcs[d2, :])
-
-                # affichage des flèches
-                # s'il y a plus de 30 flèches, on n'affiche pas le triangle à leur extrémité
-                if pcs.shape[1] < 30:
-                    plt.quiver(np.zeros(pcs.shape[1]), np.zeros(pcs.shape[1]),
-                               pcs[d1, :], pcs[d2, :],
-                               angles='xy', scale_units='xy', scale=1, color="grey")
-                    # (voir la doc : https://matplotlib.org/api/_as_gen/matplotlib.pyplot.quiver.html)
-                else:
-                    lines = [[[0, 0], [x, y]] for x, y in pcs[[d1, d2]].T]
-                    ax.add_collection(LineCollection(lines, axes=ax, alpha=.1, color='black'))
-
-                # affichage des noms des variables
-                if labels is not None:
-                    for i, (x, y) in enumerate(pcs[[d1, d2]].T):
-                        if x >= xmin and x <= xmax and y >= ymin and y <= ymax:
-                            plt.text(x, y, labels[i], fontsize='14', ha='center', va='center', rotation=label_rotation,
-                                     color="blue", alpha=0.5)
-
-                # affichage du cercle
-                circle = plt.Circle((0, 0), 1, facecolor='none', edgecolor='b')
-                plt.gca().add_artist(circle)
-
-                # définition des limites du graphique
-                plt.xlim(xmin, xmax)
-                plt.ylim(ymin, ymax)
-
-                # affichage des lignes horizontales et verticales
-                plt.plot([-1, 1], [0, 0], color='grey', ls='--')
-                plt.plot([0, 0], [-1, 1], color='grey', ls='--')
-
-                # nom des axes, avec le pourcentage d'inertie expliqué
-                plt.xlabel(
-                    'Composant Principal{} ({}%)'.format(d1 + 1, round(100 * pca.explained_variance_ratio_[d1], 1)))
-                plt.ylabel(
-                    'Composant Principal{} ({}%)'.format(d2 + 1, round(100 * pca.explained_variance_ratio_[d2], 1)))
-
-                plt.title("Cercle des corrélations des (Composants Principaux{} et {})".format(d1 + 1, d2 + 1))
-                plt.show(block=False)
-
-    display_circles(pcs, n_components, pca, [(0, 1)], labels=np.array(data_set_without_categorical_variables.columns.tolist()))
-
     data_set_description = data_set.describe()
+
     day = data_set['day']
     date = data_set['date']
     weight = data_set['weight']
@@ -138,6 +68,68 @@ class Shealth:
     }
 
     set()  # seaborn set
+    n_components = 2
+    pca = PCA(n_components=n_components)
+    data_set_without_categorical_variables_proj = pca.fit_transform(data_set_scale)
+    variance_of_first_components = pca.explained_variance_ratio_
+    data_set_without_categorical_variables_proj2 = DataFrame(data=data_set_without_categorical_variables_proj,
+                                                                columns=['PC1', 'PC2'])
+    concat_data_for_PCA = concat([data_set_without_categorical_variables_proj2, day], axis=1)
+    pcs = pca.components_
+
+    def display_circles(pcs, n_components, pca, axis_ranks, labels=None, label_rotation=0, lims=None):
+        for d1, d2 in axis_ranks:  # On affiche les 3 premiers plans factoriels, donc les 6 premières composantes
+            if d2 < n_components:
+
+                # initialisation de la figure
+                fig, ax = subplots(figsize=(7, 6))
+
+                # détermination des limites du graphique
+                if lims is not None:
+                    xmin, xmax, ymin, ymax = lims
+                elif pcs.shape[1] < 30:
+                    xmin, xmax, ymin, ymax = -1, 1, -1, 1
+                else:
+                    xmin, xmax, ymin, ymax = min(pcs[d1, :]), max(pcs[d1, :]), min(pcs[d2, :]), max(pcs[d2, :])
+
+                # affichage des flèches
+                # s'il y a plus de 30 flèches, on n'affiche pas le triangle à leur extrémité
+                if pcs.shape[1] < 30:
+                    quiver(zeros(pcs.shape[1]), zeros(pcs.shape[1]),
+                               pcs[d1, :], pcs[d2, :],
+                               angles='xy', scale_units='xy', scale=1, color="grey")
+                    # (voir la doc : https://matplotlib.org/api/_as_gen/matplotlib.pyplot.quiver.html)
+                else:
+                    lines = [[[0, 0], [x, y]] for x, y in pcs[[d1, d2]].T]
+                    ax.add_collection(LineCollection(lines, axes=ax, alpha=.1, color='black'))
+
+                # affichage des noms des variables
+                if labels is not None:
+                    for i, (x, y) in enumerate(pcs[[d1, d2]].T):
+                        if x >= xmin and x <= xmax and y >= ymin and y <= ymax:
+                            text(x, y, labels[i], fontsize='14', ha='center', va='center', rotation=label_rotation,
+                                     color="blue", alpha=0.5)
+
+                # affichage du cercle
+                circle = Circle((0, 0), 1, facecolor='none', edgecolor='b')
+                gca().add_artist(circle)
+
+                # définition des limites du graphique
+                xlim(xmin, xmax)
+                ylim(ymin, ymax)
+
+                # affichage des lignes horizontales et verticales
+                plot([-1, 1], [0, 0], color='grey', ls='--')
+                plot([0, 0], [-1, 1], color='grey', ls='--')
+
+                # nom des axes, avec le pourcentage d'inertie expliqué
+                xlabel(
+                    'Composant Principal{} ({}%)'.format(d1 + 1, round(100 * pca.explained_variance_ratio_[d1], 1)))
+                ylabel(
+                    'Composant Principal{} ({}%)'.format(d2 + 1, round(100 * pca.explained_variance_ratio_[d2], 1)))
+
+                title("Cercle des corrélations des (Composants Principaux{} et {})".format(d1 + 1, d2 + 1))
+                show(block=False)
 
     @staticmethod
     def get_confidence_interval(data_set: DataFrame, correlation: float) -> list:
@@ -289,10 +281,10 @@ class Shealth:
         """
         :return: Graph of the histograms about weight and days
         """
-        plt_1 = plt.figure(figsize=(10, 5))
+        plt_1 = figure(figsize=(10, 5))
         histplot(self.data_set, x="weight", multiple="dodge", hue="day")
         plt_1.show()
-        plt_2 = plt.figure(figsize=(10, 5))
+        plt_2 = figure(figsize=(10, 5))
         histplot(self.data_set, x="day", multiple="dodge", hue="weight")
         plt_2.show()
 
@@ -331,12 +323,12 @@ class Shealth:
         mds = MDS(random_state=0, n_components=2)
         data_set_without_categorical_variables_proj_mds = mds.fit_transform(data_set_scale)
 
-        data_set_without_categorical_variables_proj_mds1 = pd.DataFrame(data=data_set_without_categorical_variables_proj_mds,
+        data_set_without_categorical_variables_proj_mds1 = DataFrame(data=data_set_without_categorical_variables_proj_mds,
                                                                     columns=['PC1', 'PC2'])
-        concat_msa_day = pd.concat([data_set_without_categorical_variables_proj_mds1, B], axis=1)
+        concat_msa_day = concat([data_set_without_categorical_variables_proj_mds1, B], axis=1)
         print(concat_msa_day)
 
-        fig = plt.figure(figsize=(10, 10))
+        fig = figure(figsize=(10, 10))
         ax = fig.add_subplot(1, 1, 1)
         ax.set_xlabel('PC1')
         ax.set_ylabel('PC2')
@@ -350,7 +342,13 @@ class Shealth:
                        c=color, s=50)
         ax.legend(targets)
         ax.grid()
-        plt.show()
+        show()
+
+    def display_heat_map(self):
+        """
+        :return: heatmap visualization
+        """
+        return heatmap(self.data_set_without_categorical_variables.corr())
 
 
     def display_kmeans_(self):
@@ -369,23 +367,23 @@ class Shealth:
             kmeans.score(data_set_scale)
             prediction = kmeans.predict(data_set_scale)
 
-            fig = plt.figure(figsize=(10, 10))
+            fig = figure(figsize=(10, 10))
             ax = fig.add_subplot(1, 1, 1)
-            plt.scatter(data_set_scale[prediction == 0, 0], data_set_scale[prediction == 0, 1], s=50, c='red', label='Monday')
-            plt.scatter(data_set_scale[prediction == 1, 0], data_set_scale[prediction == 1, 1], s=50, c='blue', label='Tuesday')
-            plt.scatter(data_set_scale[prediction == 2, 0], data_set_scale[prediction == 2, 1], s=50, c='green', label='Wednesday')
-            plt.scatter(data_set_scale[prediction == 3, 0], data_set_scale[prediction == 3, 1], s=50, c='purple',
+            scatter(data_set_scale[prediction == 0, 0], data_set_scale[prediction == 0, 1], s=50, c='red', label='Monday')
+            scatter(data_set_scale[prediction == 1, 0], data_set_scale[prediction == 1, 1], s=50, c='blue', label='Tuesday')
+            scatter(data_set_scale[prediction == 2, 0], data_set_scale[prediction == 2, 1], s=50, c='green', label='Wednesday')
+            scatter(data_set_scale[prediction == 3, 0], data_set_scale[prediction == 3, 1], s=50, c='purple',
                         label='Thursday')
-            plt.scatter(data_set_scale[prediction == 4, 0], data_set_scale[prediction == 4, 1], s=50, c='gray',
+            scatter(data_set_scale[prediction == 4, 0], data_set_scale[prediction == 4, 1], s=50, c='gray',
                         label='Friday')
-            plt.scatter(data_set_scale[prediction == 5, 0], data_set_scale[prediction == 5, 1], s=50, c='orange',
+            scatter(data_set_scale[prediction == 5, 0], data_set_scale[prediction == 5, 1], s=50, c='orange',
                         label='Saturday')
-            plt.scatter(data_set_scale[prediction == 6, 0], data_set_scale[prediction == 6, 1], s=50, c='yellow',
+            scatter(data_set_scale[prediction == 6, 0], data_set_scale[prediction == 6, 1], s=50, c='yellow',
                         label='Sunday')
 
-            plt.scatter(kmeans.cluster_centers_[:, 0], kmeans.cluster_centers_[:, 1], s=200, c='yellow',
+            scatter(kmeans.cluster_centers_[:, 0], kmeans.cluster_centers_[:, 1], s=200, c='yellow',
                         label='Centroids')
-            plt.legend()
+            legend()
 
         kmeans1 = KMeans(n_clusters=7, n_init=7, max_iter=300, random_state=0).fit(data_set_scale)
         kmeans1.score(data_set_scale)
@@ -399,10 +397,10 @@ class Shealth:
         print(confusion_matrix_kmeans)
 
         heatmap(confusion_matrix_kmeans, annot=True, cmap='YlGn')
-        plt.title('Matrice de Confusion')
-        plt.ylabel('Véritable Label')
-        plt.xlabel('Label Théorique')
-        plt.show()
+        title('Matrice de Confusion')
+        ylabel('Véritable Label')
+        xlabel('Label Théorique')
+        show()
 
         kmeans3 = KMeans(n_clusters=7, n_init=7, max_iter=300, random_state=8).fit(data_set_scale)
         y_prediction = kmeans3.labels_
@@ -412,3 +410,20 @@ class Shealth:
             Y_num.append(kam[j])
         score = silhouette_score(data_set_scale, y_prediction)
         print(score)
+
+    def display_pca_components(self):
+        fig = figure(figsize=(10, 10))
+        ax = fig.add_subplot(1, 1, 1)
+        ax.set_xlabel('PC1')
+        ax.set_ylabel('PC2')
+        ax.set_title('Les 2 premiers composants PCA')
+        targets = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+        colors = ['red', 'blue', 'green', 'purple', 'grey', 'orange', 'yellow']
+        for target, color in zip(targets, colors):
+            indice = self.concat_data_for_PCA["day"] == target
+            ax.scatter(self.concat_data_for_PCA.loc[indice, 'PC1'],
+                       self.concat_data_for_PCA.loc[indice, 'PC2'],
+                       c=color, s=50)
+        ax.legend(targets)
+        ax.grid()
+        show()
