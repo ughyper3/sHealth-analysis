@@ -248,14 +248,10 @@ class Shealth:
         deg_lib_crosstab_weight_and_day = ((crosstab_weight_day.shape[0] - 1) * (crosstab_weight_day.shape[1] - 1))
         print(deg_lib_crosstab_weight_and_day)
         chi2_weight_and_day = chi2_contingency(crosstab_weight_day)[0]
-        sample_size = crosstab_weight_day.sum()
-        phi2 = chi2_weight_and_day/sample_size
-        r, k = crosstab_weight_day.shape
-        phi2corr = max(0, phi2 - ((k - 1) * (r - 1)) / (sample_size - 1))
-        rcorr = r - ((r - 1) ** 2) / (sample_size - 1)
-        kcorr = k - ((k - 1) ** 2) / (sample_size - 1)
+        sample_size = sum(crosstab_weight_day.sum())
+        minimum_dimension_weight_and_day = min(crosstab_weight_day.shape) - 1
 
 
-        cramer_day_and_weight = sqrt(phi2corr / min((kcorr-1), (rcorr-1)))
+        cramer_day_and_weight = sqrt(chi2_weight_and_day / (sample_size*(minimum_dimension_weight_and_day)))
         return cramer_day_and_weight
 
