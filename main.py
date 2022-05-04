@@ -3,15 +3,17 @@ from math import sqrt, log, exp
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import scipy.stats as ss
 
-from matplotlib.pyplot import subplots
-from pandas import read_csv, DataFrame, crosstab
 from sklearn.cluster import KMeans
 from sklearn.manifold import MDS
 
+from statsmodels.tsa.stattools import adfuller
+
+from models import ArmaModels, ArimaModels, SarimaModels
+from matplotlib.pyplot import subplots, plot, legend, ylabel, xlabel, title
+from pandas import read_csv, DataFrame, to_datetime, crosstab
 from process import ProcessDataset
-from seaborn import pairplot, lineplot, pointplot, histplot, heatmap
+from seaborn import pairplot, lineplot, pointplot, histplot, heatmap, set
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from matplotlib.collections import LineCollection
@@ -117,6 +119,25 @@ class Shealth:
     date_min = date.min()
     date_max = date.max()
     correlation = data_set.corr()
+
+    train_data_set = data_set[date <= to_datetime("2016-06-01", format='%Y-%m-%d')]
+    test_data_set = data_set[date > to_datetime("2016-06-01", format='%Y-%m-%d')]
+
+    ad_fuller_result = adfuller(steps)  # adf stationary statistical test, p_value < 0.05 in our case
+
+    arma_prediction, arma_rsme = ArmaModels.fit_ARMA_model(train_data_set, test_data_set, 'steps', (1, 0, 1), 0.05)
+    arima_prediction, arima_rsme = ArimaModels.fit_ARIMA_model(train_data_set, test_data_set, 'steps', (2, 2, 2), 0.05)
+    sarima_prediction, sarima_rsme = SarimaModels.fit_SARIMA_model(train_data_set, test_data_set, 'steps',
+                                                                   order=(1, 0, 1), seasonal_order=(1, 1, 1, 7),
+                                                                   alpha=0.05)
+
+    metrics = {
+        'arma rmse': arma_rsme,
+        'arima rmse': arima_rsme,
+        'sarima rmse': sarima_rsme
+    }
+
+    set()  # seaborn set
 
     @staticmethod
     def get_confidence_interval(data_set: DataFrame, correlation: float) -> list:
@@ -224,6 +245,45 @@ class Shealth:
         ax.set_title('Variance explained by components')
         ax.set_xlabel('Component Number')
         ax.set_ylabel('Explained Variance')
+
+    def display_arma_steps_prediction(self):
+        """
+        arma model prediction
+        :return: a graph with the predicted number of steps using arma model
+        """
+        self.train_data_set['steps'].plot()
+        self.test_data_set['steps'].plot()
+        ylabel('Steps')
+        xlabel('Date')
+        title("Train/Test split for steps prediction")
+        plot(self.arma_prediction, color='green', label='Predictions')
+        legend()
+
+    def display_arima_steps_prediction(self):
+        """
+        arima model prediction
+        :return: a graph with the predicted number of steps using arima model
+        """
+        self.train_data_set['steps'].plot()
+        self.test_data_set['steps'].plot()
+        ylabel('Steps')
+        xlabel('Date')
+        title("Train/Test split for steps prediction")
+        plot(self.arima_prediction, color='green', label='Predictions')
+        legend()
+
+    def display_sarima_steps_prediction(self):
+        """
+        arma model prediction
+        :return: a graph with the predicted number of steps using arma model
+        """
+        self.train_data_set['steps'].plot()
+        self.test_data_set['steps'].plot()
+        ylabel('Steps')
+        xlabel('Date')
+        title("Train/Test split for steps prediction")
+        plot(self.sarima_prediction, color='green', label='Predictions')
+        legend()
 
     def display_hist_weight_and_day(self):
         """
