@@ -7,15 +7,16 @@ import scipy.stats as ss
 
 from matplotlib.pyplot import subplots
 from pandas import read_csv, DataFrame, crosstab
+from sklearn.cluster import KMeans
 from sklearn.manifold import MDS
 
 from process import ProcessDataset
-from seaborn import pairplot, lineplot, pointplot, histplot
+from seaborn import pairplot, lineplot, pointplot, histplot, heatmap
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from matplotlib.collections import LineCollection
 from scipy.stats import chi2_contingency
-
+from sklearn.metrics import confusion_matrix, silhouette_score
 
 
 class Shealth:
@@ -259,7 +260,7 @@ class Shealth:
 
     def display_mds_(self):
         """
-        :return: mds of weight and day here
+        :return: mds about day
         """
 
         B = self.data_set["day"]
@@ -272,8 +273,8 @@ class Shealth:
 
         data_set_without_categorical_variables_proj_mds1 = pd.DataFrame(data=data_set_without_categorical_variables_proj_mds,
                                                                     columns=['PC1', 'PC2'])
-        concat_msa_weight_day = pd.concat([data_set_without_categorical_variables_proj_mds1, B], axis=1)
-        print(concat_msa_weight_day)
+        concat_msa_day = pd.concat([data_set_without_categorical_variables_proj_mds1, B], axis=1)
+        print(concat_msa_day)
 
         fig = plt.figure(figsize=(10, 10))
         ax = fig.add_subplot(1, 1, 1)
@@ -283,10 +284,71 @@ class Shealth:
         targets = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
         colors = ['red', 'blue', 'green', 'purple', 'grey', 'orange', 'yellow']
         for target, color in zip(targets, colors):
-            indice = concat_msa_weight_day["day"] == target
-            ax.scatter(concat_msa_weight_day.loc[indice, 'PC1'],
-                       concat_msa_weight_day.loc[indice, 'PC2'],
+            indice = concat_msa_day["day"] == target
+            ax.scatter(concat_msa_day.loc[indice, 'PC1'],
+                       concat_msa_day.loc[indice, 'PC2'],
                        c=color, s=50)
         ax.legend(targets)
         ax.grid()
         plt.show()
+
+
+    def display_kmeans_(self):
+        """
+        :return: kmeans...
+        """
+
+        B = self.data_set["day"]
+
+        data_set_without_categorical_variables = self.data_set.drop(['day', 'date', 'country_number', 'week'], axis=1)
+        scaler = StandardScaler()
+        data_set_scale = scaler.fit_transform(data_set_without_categorical_variables)
+
+        for i in list(range(0, 10)):
+            kmeans = KMeans(n_clusters=7, n_init=7, max_iter=300, random_state=i).fit(data_set_scale)
+            kmeans.score(data_set_scale)
+            prediction = kmeans.predict(data_set_scale)
+
+            fig = plt.figure(figsize=(10, 10))
+            ax = fig.add_subplot(1, 1, 1)
+            plt.scatter(data_set_scale[prediction == 0, 0], data_set_scale[prediction == 0, 1], s=50, c='red', label='Monday')
+            plt.scatter(data_set_scale[prediction == 1, 0], data_set_scale[prediction == 1, 1], s=50, c='blue', label='Tuesday')
+            plt.scatter(data_set_scale[prediction == 2, 0], data_set_scale[prediction == 2, 1], s=50, c='green', label='Wednesday')
+            plt.scatter(data_set_scale[prediction == 3, 0], data_set_scale[prediction == 3, 1], s=50, c='purple',
+                        label='Thursday')
+            plt.scatter(data_set_scale[prediction == 4, 0], data_set_scale[prediction == 4, 1], s=50, c='gray',
+                        label='Friday')
+            plt.scatter(data_set_scale[prediction == 5, 0], data_set_scale[prediction == 5, 1], s=50, c='orange',
+                        label='Saturday')
+            plt.scatter(data_set_scale[prediction == 6, 0], data_set_scale[prediction == 6, 1], s=50, c='yellow',
+                        label='Sunday')
+
+            plt.scatter(kmeans.cluster_centers_[:, 0], kmeans.cluster_centers_[:, 1], s=200, c='yellow',
+                        label='Centroids')
+            plt.legend()
+
+        kmeans1 = KMeans(n_clusters=7, n_init=7, max_iter=300, random_state=0).fit(data_set_scale)
+        kmeans1.score(data_set_scale)
+        prediction1 = kmeans1.predict(data_set_scale)
+
+        kmeans2 = KMeans(n_clusters=7, n_init=7, max_iter=300, random_state=8).fit(data_set_scale)
+        kmeans2.score(data_set_scale)
+        prediction2 = kmeans2.predict(data_set_scale)
+
+        confusion_matrix_kmeans = confusion_matrix(prediction1, prediction2)
+        print(confusion_matrix_kmeans)
+
+        heatmap(confusion_matrix_kmeans, annot=True, cmap='YlGn')
+        plt.title('Matrice de Confusion')
+        plt.ylabel('Véritable Label')
+        plt.xlabel('Label Théorique')
+        plt.show()
+
+        kmeans3 = KMeans(n_clusters=7, n_init=7, max_iter=300, random_state=8).fit(data_set_scale)
+        y_prediction = kmeans3.labels_
+        kam = {"Monday": 0, "Tuesday": 1, "Wednesday": 2, "Thursday": 3, "Friday": 4, "Saturday": 5, "Sunday": 6}
+        Y_num = []
+        for j in B:
+            Y_num.append(kam[j])
+        score = silhouette_score(data_set_scale, y_prediction)
+        print(score)
