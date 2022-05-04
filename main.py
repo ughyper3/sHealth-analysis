@@ -7,6 +7,8 @@ import scipy.stats as ss
 
 from matplotlib.pyplot import subplots
 from pandas import read_csv, DataFrame, crosstab
+from sklearn.manifold import MDS
+
 from process import ProcessDataset
 from seaborn import pairplot, lineplot, pointplot, histplot
 from sklearn.preprocessing import StandardScaler
@@ -255,3 +257,36 @@ class Shealth:
         cramer_day_and_weight = sqrt(chi2_weight_and_day / (sample_size*(minimum_dimension_weight_and_day)))
         return cramer_day_and_weight
 
+    def display_mds_(self):
+        """
+        :return: mds of weight and day here
+        """
+
+        B = self.data_set["day"]
+
+        data_set_without_categorical_variables = self.data_set.drop(['day', 'date', 'country_number', 'week'], axis=1)
+        scaler = StandardScaler()
+        data_set_scale = scaler.fit_transform(data_set_without_categorical_variables)
+        mds = MDS(random_state=0, n_components=2)
+        data_set_without_categorical_variables_proj_mds = mds.fit_transform(data_set_scale)
+
+        data_set_without_categorical_variables_proj_mds1 = pd.DataFrame(data=data_set_without_categorical_variables_proj_mds,
+                                                                    columns=['PC1', 'PC2'])
+        concat_msa_weight_day = pd.concat([data_set_without_categorical_variables_proj_mds1, B], axis=1)
+        print(concat_msa_weight_day)
+
+        fig = plt.figure(figsize=(10, 10))
+        ax = fig.add_subplot(1, 1, 1)
+        ax.set_xlabel('PC1')
+        ax.set_ylabel('PC2')
+        ax.set_title('MDS')
+        targets = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+        colors = ['red', 'blue', 'green', 'purple', 'grey', 'orange', 'yellow']
+        for target, color in zip(targets, colors):
+            indice = concat_msa_weight_day["day"] == target
+            ax.scatter(concat_msa_weight_day.loc[indice, 'PC1'],
+                       concat_msa_weight_day.loc[indice, 'PC2'],
+                       c=color, s=50)
+        ax.legend(targets)
+        ax.grid()
+        plt.show()
