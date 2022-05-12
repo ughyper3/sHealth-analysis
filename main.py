@@ -1,14 +1,10 @@
 from math import sqrt, log, exp
-
 from matplotlib.patches import Circle
-from statsmodels.tsa.stattools import adfuller
-
-from models import ArmaModels, ArimaModels, SarimaModels
 from matplotlib.pyplot import subplots, plot, legend, ylabel, xlabel, title, quiver, text, gca, xlim, ylim, show, \
     figure, scatter
 from pandas import read_csv, DataFrame, to_datetime, crosstab, concat
 from process import ProcessDataset
-from seaborn import pairplot, lineplot, pointplot, histplot, heatmap, set
+from seaborn import pairplot, pointplot, histplot, heatmap, set; set()
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans
@@ -50,24 +46,15 @@ class Shealth:
     date_max = date.max()
     correlation = data_set.corr()
 
-    train_data_set = data_set[date <= to_datetime("2016-06-01", format='%Y-%m-%d')]
-    test_data_set = data_set[date > to_datetime("2016-06-01", format='%Y-%m-%d')]
+    train_data_set = data_set[date <= to_datetime("2016-08-01", format='%Y-%m-%d')]
+    test_data_set = data_set[date > to_datetime("2016-08-01", format='%Y-%m-%d')]
 
-    ad_fuller_result = adfuller(steps)  # adf stationary statistical test, p_value < 0.05 in our case
+    month_train_data_set = month_aggregation[:17]
+    month_test_data_set = month_aggregation[-4:]
 
-    arma_prediction, arma_rsme = ArmaModels.fit_ARMA_model(train_data_set, test_data_set, 'steps', (1, 0, 1), 0.05)
-    arima_prediction, arima_rsme = ArimaModels.fit_ARIMA_model(train_data_set, test_data_set, 'steps', (2, 2, 2), 0.05)
-    sarima_prediction, sarima_rsme = SarimaModels.fit_SARIMA_model(train_data_set, test_data_set, 'steps',
-                                                                   order=(1, 0, 1), seasonal_order=(1, 1, 1, 7),
-                                                                   alpha=0.05)
+    week_train_data_set = week_aggregation[:70]
+    week_test_data_set = week_aggregation[-17:]
 
-    metrics = {
-        'arma rmse': arma_rsme,
-        'arima rmse': arima_rsme,
-        'sarima rmse': sarima_rsme
-    }
-
-    set()  # seaborn set
     n_components = 2
     pca = PCA(n_components=n_components)
     data_set_without_categorical_variables_proj = pca.fit_transform(data_set_scale)
@@ -77,7 +64,7 @@ class Shealth:
     concat_data_for_PCA = concat([data_set_without_categorical_variables_proj2, day], axis=1)
     pcs = pca.components_
 
-    def display_circles(pcs, n_components, pca, axis_ranks, labels=None, label_rotation=0, lims=None):
+    def display_circles(self, n_components, pca, axis_ranks, labels=None, label_rotation=0, lims=None):
         for d1, d2 in axis_ranks:  # On affiche les 3 premiers plans factoriels, donc les 6 premières composantes
             if d2 < n_components:
 
@@ -87,25 +74,25 @@ class Shealth:
                 # détermination des limites du graphique
                 if lims is not None:
                     xmin, xmax, ymin, ymax = lims
-                elif pcs.shape[1] < 30:
+                elif self.shape[1] < 30:
                     xmin, xmax, ymin, ymax = -1, 1, -1, 1
                 else:
-                    xmin, xmax, ymin, ymax = min(pcs[d1, :]), max(pcs[d1, :]), min(pcs[d2, :]), max(pcs[d2, :])
+                    xmin, xmax, ymin, ymax = min(self[d1, :]), max(self[d1, :]), min(self[d2, :]), max(self[d2, :])
 
                 # affichage des flèches
                 # s'il y a plus de 30 flèches, on n'affiche pas le triangle à leur extrémité
-                if pcs.shape[1] < 30:
-                    quiver(zeros(pcs.shape[1]), zeros(pcs.shape[1]),
-                               pcs[d1, :], pcs[d2, :],
-                               angles='xy', scale_units='xy', scale=1, color="grey")
+                if self.shape[1] < 30:
+                    quiver(zeros(self.shape[1]), zeros(self.shape[1]),
+                           self[d1, :], self[d2, :],
+                           angles='xy', scale_units='xy', scale=1, color="grey")
                     # (voir la doc : https://matplotlib.org/api/_as_gen/matplotlib.pyplot.quiver.html)
                 else:
-                    lines = [[[0, 0], [x, y]] for x, y in pcs[[d1, d2]].T]
+                    lines = [[[0, 0], [x, y]] for x, y in self[[d1, d2]].T]
                     ax.add_collection(LineCollection(lines, axes=ax, alpha=.1, color='black'))
 
                 # affichage des noms des variables
                 if labels is not None:
-                    for i, (x, y) in enumerate(pcs[[d1, d2]].T):
+                    for i, (x, y) in enumerate(self[[d1, d2]].T):
                         if x >= xmin and x <= xmax and y >= ymin and y <= ymax:
                             text(x, y, labels[i], fontsize='14', ha='center', va='center', rotation=label_rotation,
                                      color="blue", alpha=0.5)
@@ -168,66 +155,6 @@ class Shealth:
         """
         return pairplot(self.data_set)
 
-    def display_graph_date_steps(self):
-        """
-        :return: Graph of the number of steps by date
-        """
-        return lineplot(x=self.date, y=self.steps)
-
-    def display_graph_year_steps(self):
-        """
-        :return: Graph of the number of avg steps by year
-        """
-        return self.year_aggregation['steps'].plot()
-
-    def display_graph_month_steps(self):
-        """
-        :return: Graph of the number of avg steps by month
-        """
-        return self.month_aggregation['steps'].plot()
-
-    def display_graph_week_steps(self):
-        """
-        :return: Graph of the number of avg steps by week
-        """
-        return self.week_aggregation['steps'].plot()
-
-    def display_graph_weekday_steps(self):
-        """
-        :return: Graph of the number of avg steps by week day
-        """
-        return self.weekday_aggregation['steps'].plot()
-
-    def display_graph_date_speed(self):
-        """
-        :return: Graph of the number of steps by date
-        """
-        return lineplot(x=self.date, y=self.speed)
-
-    def display_graph_year_speed(self):
-        """
-        :return: Graph of the number of avg steps by year
-        """
-        return self.year_aggregation['average_speed'].plot()
-
-    def display_graph_month_speed(self):
-        """
-        :return: Graph of the number of avg steps by month
-        """
-        return self.month_aggregation['average_speed'].plot()
-
-    def display_graph_week_speed(self):
-        """
-        :return: Graph of the number of avg steps by week
-        """
-        return self.week_aggregation['average_speed'].plot()
-
-    def display_graph_weekday_speed(self):
-        """
-        :return: Graph of the number of avg steps by week day
-        """
-        return self.weekday_aggregation['average_speed'].plot()
-
     def display_variance_explained_by_first_components(self):
         """
         :return: Graph of the explained variance by first pca components
@@ -237,45 +164,6 @@ class Shealth:
         ax.set_title('Variance explained by components')
         ax.set_xlabel('Component Number')
         ax.set_ylabel('Explained Variance')
-
-    def display_arma_steps_prediction(self):
-        """
-        arma model prediction
-        :return: a graph with the predicted number of steps using arma model
-        """
-        self.train_data_set['steps'].plot()
-        self.test_data_set['steps'].plot()
-        ylabel('Steps')
-        xlabel('Date')
-        title("Train/Test split for steps prediction")
-        plot(self.arma_prediction, color='green', label='Predictions')
-        legend()
-
-    def display_arima_steps_prediction(self):
-        """
-        arima model prediction
-        :return: a graph with the predicted number of steps using arima model
-        """
-        self.train_data_set['steps'].plot()
-        self.test_data_set['steps'].plot()
-        ylabel('Steps')
-        xlabel('Date')
-        title("Train/Test split for steps prediction")
-        plot(self.arima_prediction, color='green', label='Predictions')
-        legend()
-
-    def display_sarima_steps_prediction(self):
-        """
-        arma model prediction
-        :return: a graph with the predicted number of steps using arma model
-        """
-        self.train_data_set['steps'].plot()
-        self.test_data_set['steps'].plot()
-        ylabel('Steps')
-        xlabel('Date')
-        title("Train/Test split for steps prediction")
-        plot(self.sarima_prediction, color='green', label='Predictions')
-        legend()
 
     def display_hist_weight_and_day(self):
         """
@@ -305,8 +193,6 @@ class Shealth:
         chi2_weight_and_day = chi2_contingency(crosstab_weight_day)[0]
         sample_size = sum(crosstab_weight_day.sum())
         minimum_dimension_weight_and_day = min(crosstab_weight_day.shape) - 1
-
-
         cramer_day_and_weight = sqrt(chi2_weight_and_day / (sample_size*(minimum_dimension_weight_and_day)))
         return cramer_day_and_weight
 
@@ -349,7 +235,6 @@ class Shealth:
         :return: heatmap visualization
         """
         return heatmap(self.data_set_without_categorical_variables.corr())
-
 
     def display_kmeans_(self):
         """

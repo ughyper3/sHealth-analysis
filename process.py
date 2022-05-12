@@ -63,7 +63,7 @@ class ProcessDataset:
         :param data: input dataset
         :return: output rounded dataset
         """
-        return data.round(decimals=0)
+        return data.round(decimals=2)
 
     @staticmethod
     def rename_columns(raw_data: DataFrame) -> DataFrame:
@@ -142,6 +142,16 @@ class ProcessDataset:
         return raw_data
 
     @staticmethod
+    def add_delta_weight_column(raw_data: DataFrame) -> DataFrame:
+        raw_data['delta_weight'] = raw_data['weight'].diff().fillna(0)
+        return raw_data
+
+    @staticmethod
+    def add_delta_steps_column(raw_data: DataFrame) -> DataFrame:
+        raw_data['delta_steps'] = raw_data['steps'].diff().fillna(0)
+        return raw_data
+
+    @staticmethod
     def process_data(data: DataFrame) -> DataFrame:
         """
         process the data by applying the methods created above.
@@ -158,13 +168,15 @@ class ProcessDataset:
             step_6 = ProcessDataset.rename_columns(step_5)
             step_7 = ProcessDataset.create_average_speed_column(step_6)
             step_8 = ProcessDataset.set_date_as_dataset_index(step_7)
-            ProcessDataset.sanity_check_duplicate_date(step_8)
+            step_9 = ProcessDataset.add_delta_weight_column(step_8)
+            step_10 = ProcessDataset.add_delta_steps_column(step_9)
+            ProcessDataset.sanity_check_duplicate_date(step_10)
 
         except Exception as e:
             print(f'exception {e} during the data preprocessing')
             return data
         else:
             print(f'Successful data preprocessing')
-            return step_8
+            return step_10
 
 
