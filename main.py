@@ -21,7 +21,7 @@ class Shealth:
     raw_data = read_csv('shealth.csv',  sep=";", decimal=',')
     data_set = process.process_data(raw_data)
 
-    data_set_without_categorical_variables = data_set.drop(['day', 'date', 'country_number', 'week'], axis=1)
+    data_set_without_categorical_variables = data_set.drop(['day', 'date', 'country_name', 'week'], axis=1)
 
     scaler = StandardScaler()
     data_set_scale = scaler.fit_transform(data_set_without_categorical_variables)
@@ -34,8 +34,21 @@ class Shealth:
     walk_duration = data_set['walk_duration']
     sport_duration = data_set['sport_duration']
     spent_energy = data_set['spent_energy']
-    country_number = data_set['country_number']
+    country_name = data_set['country_name']
     speed = data_set['average_speed']
+
+    group_by_country_name_count = data_set.groupby('country_name')\
+        .agg(steps_mean=('steps', 'mean'),
+             measure_count=('country_name', 'size'),
+             average_speed=('average_speed', 'mean'),
+             data_min=('date', 'min'),
+             date_max=('date', 'max'),
+             calories=('spent_energy', 'mean'),
+             sport_duration=('sport_duration', 'mean'),
+             min_weight=('weight', 'min'),
+             max_weight=('weight', 'max')
+             )\
+        .sort_values('measure_count', ascending=False)
 
     year_aggregation = data_set.groupby(date.dt.to_period('Y')).agg('mean')
     month_aggregation = data_set.groupby(date.dt.to_period('M')).agg('mean')

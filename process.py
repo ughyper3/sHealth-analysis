@@ -81,7 +81,7 @@ class ProcessDataset:
                 'Walk (min)': 'walk_duration',
                 'Sport (min)': 'sport_duration',
                 'Spent kcal': 'spent_energy',
-                'GPS country': 'country_number'
+                'GPS country': 'country_name'
             }
         )
         return data_set
@@ -153,15 +153,14 @@ class ProcessDataset:
 
     @staticmethod
     def change_country_number_to_country_name(raw_data: DataFrame) -> DataFrame:
-       raw_data["country_number"] = raw_data["country_number"]\
+        raw_data["country_name"] = raw_data["country_name"]\
            .replace(
            [33, 353, 34, 32, 82, 81, 974, 49, 212],
            ["France", "Ireland", "Spain",
             "Belgium", "South Korea", "Japan",
             "Qatar", "Germany", "Morocco"]
             )
-       raw_data["country_number"] = raw_data["country_name"]
-       return raw_data
+        return raw_data
 
     @staticmethod
     def process_data(data: DataFrame) -> DataFrame:
