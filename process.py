@@ -152,6 +152,18 @@ class ProcessDataset:
         return raw_data
 
     @staticmethod
+    def change_country_number_to_country_name(raw_data: DataFrame) -> DataFrame:
+       raw_data["country_number"] = raw_data["country_number"]\
+           .replace(
+           [33, 353, 34, 32, 82, 81, 974, 49, 212],
+           ["France", "Ireland", "Spain",
+            "Belgium", "South Korea", "Japan",
+            "Qatar", "Germany", "Morocco"]
+            )
+       raw_data["country_number"] = raw_data["country_name"]
+       return raw_data
+
+    @staticmethod
     def process_data(data: DataFrame) -> DataFrame:
         """
         process the data by applying the methods created above.
@@ -170,13 +182,14 @@ class ProcessDataset:
             step_8 = ProcessDataset.set_date_as_dataset_index(step_7)
             step_9 = ProcessDataset.add_delta_weight_column(step_8)
             step_10 = ProcessDataset.add_delta_steps_column(step_9)
-            ProcessDataset.sanity_check_duplicate_date(step_10)
+            step_11 = ProcessDataset.change_country_number_to_country_name(step_10)
+            ProcessDataset.sanity_check_duplicate_date(step_11)
 
         except Exception as e:
             print(f'exception {e} during the data preprocessing')
             return data
         else:
             print(f'Successful data preprocessing')
-            return step_10
+            return step_11
 
 
